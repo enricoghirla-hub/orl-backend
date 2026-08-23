@@ -180,30 +180,46 @@ export default function StudioDashboard() {
 
   const handleSendAiMessage = async (customPrompt?: string) => {
     const query = customPrompt || chatInput;
-    if (!query.trim()) return;
+    if (!query.trim() || isAiThinking) return;
 
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setMessages((prev) => [...prev, { role: 'user', text: query, time: timeStr }]);
     if (!customPrompt) setChatInput('');
     setIsAiThinking(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     try {
       const res = await fetch('https://orl-backend-api.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: query }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        throw new Error(`Errore HTTP ${res.status}`);
+      }
 
       const data = await res.json();
       setMessages((prev) => [...prev, { 
         role: 'ai', 
-        text: data.reply,
+        text: data.reply || "⚠️ Nessuna risposta valida ricevuta dal backend.",
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      let errorText = '⚠️ Impossibile collegarsi al backend Cloud su Render. Verifica la connessione.';
+      if (error.name === 'AbortError') {
+        errorText = '⚠️ Il server sta impiegando troppo tempo a rispondere (Cold Start di Render in corso). Attendi circa 30 secondi e invia nuovamente la domanda.';
+      }
+
       setMessages((prev) => [...prev, { 
         role: 'ai', 
-        text: '⚠️ Impossibile collegarsi al backend Cloud su Render. Verifica che il servizio sia attivo.',
+        text: errorText,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
     } finally {
@@ -583,7 +599,8 @@ export default function StudioDashboard() {
                 <button
                   key={i}
                   onClick={() => handleSendAiMessage(prompt)}
-                  className="text-[11px] bg-white hover:bg-slate-100 text-slate-600 px-3 py-1 rounded-lg border border-slate-200 whitespace-nowrap transition flex items-center gap-1"
+                  disabled={isAiThinking}
+                  className="text-[11px] bg-white hover:bg-slate-100 text-slate-600 px-3 py-1 rounded-lg border border-slate-200 whitespace-nowrap transition flex items-center gap-1 disabled:opacity-50"
                 >
                   <ChevronRight className="w-3 h-3 text-indigo-500" />
                   {prompt}
@@ -598,13 +615,15 @@ export default function StudioDashboard() {
                   type="text"
                   placeholder="Scrivi un quesito o richiedi una sintesi EBM..."
                   value={chatInput}
+                  disabled={isAiThinking}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendAiMessage()}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition disabled:opacity-50"
                 />
                 <button
                   onClick={() => handleSendAiMessage()}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 shadow-xs"
+                  disabled={isAiThinking || !chatInput.trim()}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 shadow-xs disabled:opacity-50"
                 >
                   <Send className="w-3.5 h-3.5" /> Invia
                 </button>
