@@ -61,4 +61,3 @@ async def ask_ai(data: ChatRequest):
         return {"reply": "⚠️ Tempo di attesa esaurito (più di 60 secondi). Riprova a inviare la richiesta."}
     except Exception as e:
         return {"reply": f"⚠️ Errore di connessione Python: {str(e)}"}
-    
