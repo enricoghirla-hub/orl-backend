@@ -6,7 +6,7 @@ import requests
 
 app = FastAPI(title="ORL Studio Backend API", version="1.0.0")
 
-# Abilitazione CORS per il frontend Next.js su localhost:3000
+# Abilitazione CORS per consentire le chiamate dal frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

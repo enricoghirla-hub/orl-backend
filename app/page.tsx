@@ -5,12 +5,13 @@ import { supabase } from '@/lib/supabase';
 import { 
   Search, Plus, BookOpen, FileText, Tag, Clock, 
   Ear, Activity, Wind, MicVocal, Skull, Stethoscope, Sparkles,
-  ShieldCheck, ExternalLink, Bold, Italic, Underline as UnderlineIcon, 
-  Trash2, Save, Send, Bot, User, Zap, ChevronRight, Copy, Check, ArrowUpRight
+  ShieldCheck, Bold, Italic, Underline as UnderlineIcon, 
+  Trash2, Save, Send, Bot, ChevronRight, Copy, Check, ArrowUpRight, Zap
 } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
+import EbmCalculators from "@/components/EbmCalculators";
 
 interface Note {
   id: string;
@@ -31,7 +32,7 @@ interface Guideline {
   link?: string;
 }
 
-const CAPITOLI_ORL = {
+const CAPITOLI_ORL: Record<string, { icon: any; badge: string }> = {
   'Otologia': { icon: Ear, badge: 'bg-amber-50 text-amber-700 border-amber-200/80' },
   'Otoneurologia & Vestibologia': { icon: Activity, badge: 'bg-indigo-50 text-indigo-700 border-indigo-200/80' },
   'Rinologia & Paranasali': { icon: Wind, badge: 'bg-teal-50 text-teal-700 border-teal-200/80' },
@@ -99,7 +100,7 @@ export default function StudioDashboard() {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string; time: string }[]>([
     { 
       role: 'ai', 
-      text: 'Buongiorno Dottore. Sono pronto per assistente la sua attività clinica. Che cosa vogliamo consultare o sintetizzare oggi?',
+      text: 'Buongiorno Dottore. Sono pronto per assistere la sua attività clinica. Che cosa vogliamo consultare o sintetizzare oggi?',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -187,7 +188,7 @@ export default function StudioDashboard() {
     setIsAiThinking(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/chat', {
+      const res = await fetch('https://orl-backend-api.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: query }),
@@ -202,7 +203,7 @@ export default function StudioDashboard() {
     } catch (error) {
       setMessages((prev) => [...prev, { 
         role: 'ai', 
-        text: '⚠️ Impossibile collegarsi al backend Python. Verifica che il server FastAPI sia running su localhost:8000.',
+        text: '⚠️ Impossibile collegarsi al backend Cloud su Render. Verifica che il servizio sia attivo.',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
     } finally {
@@ -235,7 +236,7 @@ export default function StudioDashboard() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans antialiased pb-12 selection:bg-indigo-100 selection:text-indigo-900">
       
-      {/* Floating Apple-Style Bar Header */}
+      {/* Floating Header */}
       <div className="max-w-7xl mx-auto pt-6 px-6">
         <header className="bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-3 px-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
           
@@ -289,7 +290,7 @@ export default function StudioDashboard() {
           <div className="hidden lg:flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/80">
               <Zap className="w-3.5 h-3.5 text-amber-500" />
-              <span className="font-medium">FastAPI Status: OK</span>
+              <span className="font-medium">Cloud Backend: Render</span>
             </div>
           </div>
 
@@ -348,11 +349,11 @@ export default function StudioDashboard() {
           </div>
         </div>
 
-        {/* TAB 1: BENTO WORKSPACE */}
+        {/* TAB 1: WORKSPACE */}
         {activeTab === 'workspace' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            {/* Bento Sidebar - Lista Schede */}
+            {/* Lista Schede */}
             <div className="lg:col-span-4 space-y-4">
               <div className="flex items-center justify-between px-1">
                 <h2 className="text-sm font-bold text-slate-800">Dossier & Schede ({filteredNotes.length})</h2>
@@ -419,7 +420,7 @@ export default function StudioDashboard() {
               </div>
             </div>
 
-            {/* Main Bento Card - Editor Form */}
+            {/* Editor Form */}
             <div className="lg:col-span-8">
               {selectedNote ? (
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
@@ -472,49 +473,53 @@ export default function StudioDashboard() {
 
         {/* TAB 2: LINEE GUIDA */}
         {activeTab === 'guidelines' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-            {filteredGuidelines.map((gl) => (
-              <div 
-                key={gl.id} 
-                className="bg-white border border-slate-200/80 rounded-3xl p-6 hover:shadow-md hover:border-indigo-300 transition duration-300 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full">
-                      {gl.society} • {gl.year}
-                    </span>
-                    <button 
-                      onClick={() => copyToClipboard(`${gl.title}\n${gl.summary}`, gl.id)}
-                      className="text-slate-400 hover:text-slate-600 transition"
-                    >
-                      {copiedId === gl.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                    </button>
+          <div className="space-y-6">
+            <EbmCalculators />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+              {filteredGuidelines.map((gl) => (
+                <div 
+                  key={gl.id} 
+                  className="bg-white border border-slate-200/80 rounded-3xl p-6 hover:shadow-md hover:border-indigo-300 transition duration-300 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full">
+                        {gl.society} • {gl.year}
+                      </span>
+                      <button 
+                        onClick={() => copyToClipboard(`${gl.title}\n${gl.summary}`, gl.id)}
+                        className="text-slate-400 hover:text-slate-600 transition"
+                      >
+                        {copiedId === gl.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    <h3 className="font-bold text-base text-slate-900 mb-2">
+                      {gl.title}
+                    </h3>
+
+                    <p className="text-slate-600 text-xs leading-relaxed mb-4">
+                      {gl.summary}
+                    </p>
                   </div>
 
-                  <h3 className="font-bold text-base text-slate-900 mb-2">
-                    {gl.title}
-                  </h3>
-
-                  <p className="text-slate-600 text-xs leading-relaxed mb-4">
-                    {gl.summary}
-                  </p>
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-medium">{gl.category}</span>
+                    {gl.link && (
+                      <a 
+                        href={gl.link} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center gap-1 text-xs text-indigo-600 font-semibold hover:underline"
+                      >
+                        NCCN Portal <ArrowUpRight className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
                 </div>
-
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 font-medium">{gl.category}</span>
-                  {gl.link && (
-                    <a 
-                      href={gl.link} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="flex items-center gap-1 text-xs text-indigo-600 font-semibold hover:underline"
-                    >
-                      NCCN Portal <ArrowUpRight className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -530,7 +535,7 @@ export default function StudioDashboard() {
                 </div>
                 <div>
                   <h2 className="font-bold text-slate-900 text-xs">Copilot ORL (Gemini 3.6)</h2>
-                  <p className="text-[10px] text-slate-500">FastAPI Integration</p>
+                  <p className="text-[10px] text-slate-500">FastAPI Cloud Service</p>
                 </div>
               </div>
 
