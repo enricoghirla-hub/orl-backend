@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/lib/supabase';
 import { 
   Search, Plus, BookOpen, FileText, Tag, Clock, 
@@ -12,6 +14,13 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import EbmCalculators from "../components/EbmCalculators";
+
+// Configurazione del Nuovo Font Premium (Plus Jakarta Sans)
+const plusJakartaSans = Plus_Jakarta_Sans({ 
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+});
 
 interface Note {
   id: string;
@@ -251,7 +260,7 @@ export default function StudioDashboard() {
   }, [selectedSection, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans antialiased pb-12 selection:bg-indigo-100 selection:text-indigo-900">
+    <div className={`min-h-screen bg-[#f8fafc] text-slate-900 antialiased pb-12 selection:bg-indigo-100 selection:text-indigo-900 ${plusJakartaSans.className}`}>
       
       {/* Floating Header */}
       <div className="max-w-7xl mx-auto pt-6 px-6">
@@ -568,7 +577,7 @@ export default function StudioDashboard() {
                   <Bot className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-900 text-xs">Copilot ORL (Gemini 3.6)</h2>
+                  <h2 className="font-bold text-slate-900 text-xs">AI Copilot (Gemini 3.6)</h2>
                   <p className="text-[10px] text-slate-500">FastAPI Cloud Service</p>
                 </div>
               </div>
@@ -597,7 +606,15 @@ export default function StudioDashboard() {
                       <span className="font-bold">{m.role === 'user' ? 'Clinico' : 'AI Copilot'}</span>
                       <span>{m.time}</span>
                     </div>
-                    <div className="whitespace-pre-wrap">{m.text}</div>
+
+                    {/* RENDER CON REACT-MARKDOWN PER RISPOSTE FORMATTATE */}
+                    {m.role === 'ai' ? (
+                      <div className="prose prose-slate text-xs sm:text-sm max-w-none leading-relaxed">
+                        <ReactMarkdown>{m.text}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{m.text}</div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -610,9 +627,9 @@ export default function StudioDashboard() {
               )}
             </div>
 
-            {/* Prompt Suggeriti */}
+            {/* SUGGERIMENTI */}
             <div className="px-6 py-2 bg-slate-50/50 border-t border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-none">
-              <span className="text-[10px] text-slate-400 font-semibold uppercase whitespace-nowrap">Suggerimenti:</span>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase whitespace-nowrap">SUGGERIMENTI:</span>
               {SUGGESTED_PROMPTS.map((prompt, i) => (
                 <button
                   key={i}
