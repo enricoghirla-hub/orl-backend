@@ -5,8 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
 
-from langchain_community.vectorstores import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 
@@ -21,9 +19,6 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6K_9Yz9WhmLa1f2sKTtjkymfCro65eHQzZ2EQHIBFeJHA")
-
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-vectorstore = Chroma(persist_directory="./ebm_db", embedding_function=embeddings)
 
 
 class ChatRequest(BaseModel):
@@ -99,6 +94,13 @@ async def ask_ai(data: ChatRequest):
 @app.post("/api/rag-query")
 async def handle_rag_query(req: RagRequest):
     try:
+        # Importazioni e inizializzazione lazy per mantenere l'avvio sotto i 512 MB di RAM
+        from langchain_community.vectorstores import Chroma
+        from langchain_huggingface import HuggingFaceEmbeddings
+
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        vectorstore = Chroma(persist_directory="./ebm_db", embedding_function=embeddings)
+
         patient_info = f"Diagnosi: {req.context.get('diagnosi', 'N/D')}" if req.context else "Nessuno"
         
         retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
@@ -125,5 +127,3 @@ async def handle_rag_query(req: RagRequest):
         return {"answer": response.content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-    # Aggiornamento rotte RAG - v1.1
