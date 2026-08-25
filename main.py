@@ -21,7 +21,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6K_9Yz9WhmLa1f2sKTtjkymfCr
 class ChatRequest(BaseModel):
     prompt: str
 
-# Optional[Any] previene l'errore 422 di validazione Pydantic
 class RagRequest(BaseModel):
     prompt: str
     context: Optional[Any] = None
@@ -29,7 +28,7 @@ class RagRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"status": "online", "model": "gemini-flash Direct RAG", "service": "ORL Studio API"}
+    return {"status": "online", "model": "gemini-3.6-flash Direct RAG", "service": "ORL Studio API"}
 
 
 @app.post("/api/chat")
@@ -51,7 +50,7 @@ async def ask_ai(data: ChatRequest):
         }]
     }
 
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
     
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
@@ -74,7 +73,6 @@ async def ask_ai(data: ChatRequest):
 @app.post("/api/rag-query")
 async def handle_rag_query(req: RagRequest):
     try:
-        # Gestione flessibile del contesto per evitare eccezioni di attributo
         if isinstance(req.context, dict):
             patient_info = f"Diagnosi: {req.context.get('diagnosi', 'N/D')}"
         elif isinstance(req.context, str) and req.context.strip():
@@ -102,7 +100,7 @@ async def handle_rag_query(req: RagRequest):
             "contents": [{"parts": [{"text": prompt_text}]}]
         }
 
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         res_data = response.json()
 
