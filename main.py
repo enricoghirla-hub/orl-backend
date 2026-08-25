@@ -12,7 +12,6 @@ from langchain_core.prompts import PromptTemplate
 
 app = FastAPI(title="ORL Studio Backend API", version="1.0.0")
 
-# Abilitazione CORS per consentire le chiamate dal frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,12 +22,9 @@ app.add_middleware(
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6K_9Yz9WhmLa1f2sKTtjkymfCro65eHQzZ2EQHIBFeJHA")
 
-# Inizializzazione Vector Store ChromaDB con Embedding locale HuggingFace
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 vectorstore = Chroma(persist_directory="./ebm_db", embedding_function=embeddings)
 
-
-# --- MODELLI DI RICHIESTA ---
 
 class ChatRequest(BaseModel):
     prompt: str
@@ -37,8 +33,6 @@ class RagRequest(BaseModel):
     prompt: str
     context: Optional[dict] = None
 
-
-# --- TEMPLATE PROMPT EBM ---
 
 SYSTEM_PROMPT_TEMPLATE = """
 Sei un assistente clinico EBM specializzato in Otorinolaringoiatria.
@@ -58,14 +52,11 @@ Formatta la risposta ESATTAMENTE in questo modo:
 """
 
 
-# --- ROTTE API ---
-
 @app.get("/")
 def read_root():
     return {"status": "online", "model": "gemini-3.6-flash RAG", "service": "ORL Studio API"}
 
 
-# 1. Rotta Chat Gemini Generica con Gemini 3.6 Flash
 @app.post("/api/chat")
 async def ask_ai(data: ChatRequest):
     headers = {
@@ -105,18 +96,15 @@ async def ask_ai(data: ChatRequest):
         return {"reply": f"⚠️ Errore di connessione Python: {str(e)}"}
 
 
-# 2. Rotta RAG per la ricerca nei PDF con Gemini 3.6 Flash
 @app.post("/api/rag-query")
 async def handle_rag_query(req: RagRequest):
     try:
         patient_info = f"Diagnosi: {req.context.get('diagnosi', 'N/D')}" if req.context else "Nessuno"
         
-        # Recupera i 3 blocchi di testo più rilevanti dal database vettoriale
         retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
         docs = retriever.invoke(req.prompt)
         retrieved_text = "\n\n".join([d.page_content for d in docs])
         
-        # Inizializza Gemini 3.6 Flash tramite LangChain
         prompt = PromptTemplate(
             template=SYSTEM_PROMPT_TEMPLATE, 
             input_variables=["patient_context", "context", "question"]
@@ -134,7 +122,6 @@ async def handle_rag_query(req: RagRequest):
         )
         
         response = llm.invoke(chain_input)
-        
         return {"answer": response.content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
