@@ -125,3 +125,5 @@ async def handle_rag_query(req: RagRequest):
         return {"answer": response.content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    # Aggiornamento rotte RAG - v1.1
