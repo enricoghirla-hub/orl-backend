@@ -14,6 +14,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import EbmCalculators from "../components/EbmCalculators";
+import EbmQuickSearch from '@/components/EbmQuickSearch';
 
 const plusJakartaSans = Plus_Jakarta_Sans({ 
   subsets: ['latin'],
@@ -737,7 +738,14 @@ export default function StudioDashboard() {
 
           </div>
         )}
-
+{/* Widget EBM Quick Search float in basso a destra */}
+      <EbmQuickSearch 
+        patientContext={selectedNote ? {
+          diagnosi: selectedNote.title,
+          capitolo: selectedNote.section,
+          note: selectedNote.content_json?.replace(/<[^>]+>/g, '')
+        } : undefined} 
+      />
       </div>
     </div>
   );
