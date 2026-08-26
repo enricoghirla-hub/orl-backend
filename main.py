@@ -15,11 +15,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6K_9Yz9WhmLa1f2sKTtjkymfCro65eHQzZ2EQHIBFeJHA")
 
 
 class ChatRequest(BaseModel):
     prompt: str
+
 
 class RagRequest(BaseModel):
     prompt: str
@@ -28,14 +29,7 @@ class RagRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {
-        "status": "online",
-        "models": {
-            "chat": "gemini-3.5-flash-lite",
-            "rag": "gemini-3.7-flash"
-        },
-        "service": "ORL Studio API"
-    }
+    return {"status": "online", "model": "gemini-3.6-flash Direct RAG", "service": "ORL Studio API"}
 
 
 @app.post("/api/chat")
@@ -57,8 +51,7 @@ async def ask_ai(data: ChatRequest):
         }]
     }
 
-    # Endpoint su gemini-3.5-flash-lite per maggiore frequenza e costi contenuti
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
@@ -108,8 +101,7 @@ async def handle_rag_query(req: RagRequest):
             "contents": [{"parts": [{"text": prompt_text}]}]
         }
 
-        # Endpoint su gemini-3.7-flash per reasoning clinico e sintesi avanzata
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent"
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         res_data = response.json()
 
