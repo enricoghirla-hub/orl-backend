@@ -15,16 +15,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configurazione API Key e Modelli distinti
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-MODEL_CHAT = "gemini-3.5-flash-lite"
-MODEL_RAG = "gemini-3.7-flash"
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
 class ChatRequest(BaseModel):
     prompt: str
-
 
 class RagRequest(BaseModel):
     prompt: str
@@ -36,40 +31,34 @@ def read_root():
     return {
         "status": "online",
         "models": {
-            "chat": MODEL_CHAT,
-            "rag": MODEL_RAG,
+            "chat": "gemini-3.5-flash-lite",
+            "rag": "gemini-3.7-flash"
         },
-        "service": "ORL Studio API",
+        "service": "ORL Studio API"
     }
 
 
 @app.post("/api/chat")
 async def ask_ai(data: ChatRequest):
-    if not GEMINI_API_KEY:
-        return {"reply": "⚠️ Errore: GEMINI_API_KEY non configurata."}
-
     headers = {
         "x-goog-api-key": GEMINI_API_KEY,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
     }
 
     payload = {
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "text": (
-                            "Sei un assistente medico esperto in Otorinolaringoiatria (ORL). "
-                            "Rispondi in modo conciso, professionale e basato su linee guida EBM:\n\n"
-                            f"{data.prompt}"
-                        )
-                    }
-                ]
-            }
-        ]
+        "contents": [{
+            "parts": [{
+                "text": (
+                    "Sei un assistente medico esperto in Otorinolaringoiatria (ORL). "
+                    "Rispondi in modo conciso, professionale e basato su linee guida EBM:\n\n"
+                    f"{data.prompt}"
+                )
+            }]
+        }]
     }
 
-    url = f"{BASE_URL}/{MODEL_CHAT}:generateContent"
+    # Endpoint su gemini-3.5-flash-lite per maggiore frequenza e costi contenuti
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
@@ -79,9 +68,7 @@ async def ask_ai(data: ChatRequest):
             text = res_data["candidates"][0]["content"]["parts"][0]["text"]
             return {"reply": text, "answer": text}
         elif "error" in res_data:
-            return {
-                "reply": f"⚠️ Errore Google ({res_data['error'].get('code')}): {res_data['error'].get('message')}"
-            }
+            return {"reply": f"⚠️ Errore Google ({res_data['error'].get('code')}): {res_data['error'].get('message')}"}
         else:
             return {"reply": f"⚠️ Risposta non valida dal server Gemini: {res_data}"}
 
@@ -93,12 +80,6 @@ async def ask_ai(data: ChatRequest):
 
 @app.post("/api/rag-query")
 async def handle_rag_query(req: RagRequest):
-    if not GEMINI_API_KEY:
-        return {
-            "answer": "⚠️ Errore: GEMINI_API_KEY non configurata.",
-            "reply": "⚠️ Errore: GEMINI_API_KEY non configurata.",
-        }
-
     try:
         if isinstance(req.context, dict):
             patient_info = f"Diagnosi: {req.context.get('diagnosi', 'N/D')}"
@@ -109,7 +90,7 @@ async def handle_rag_query(req: RagRequest):
 
         headers = {
             "x-goog-api-key": GEMINI_API_KEY,
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
         }
 
         prompt_text = (
@@ -123,9 +104,12 @@ async def handle_rag_query(req: RagRequest):
             f"- 📄 **Fonte Ufficiale**: [Nome Linea Guida EBM/EPOS/AAO-HNS, Anno, Pagina o Sezione]"
         )
 
-        payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
+        payload = {
+            "contents": [{"parts": [{"text": prompt_text}]}]
+        }
 
-        url = f"{BASE_URL}/{MODEL_RAG}:generateContent"
+        # Endpoint su gemini-3.7-flash per reasoning clinico e sintesi avanzata
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent"
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         res_data = response.json()
 
@@ -133,19 +117,10 @@ async def handle_rag_query(req: RagRequest):
             text = res_data["candidates"][0]["content"]["parts"][0]["text"]
             return {"answer": text, "reply": text}
         elif "error" in res_data:
-            err_msg = res_data["error"].get("message", "Errore generico API")
-            return {
-                "answer": f"⚠️ Errore API Google: {err_msg}",
-                "reply": f"⚠️ Errore API Google: {err_msg}",
-            }
+            err_msg = res_data['error'].get('message', 'Errore generico API')
+            return {"answer": f"⚠️ Errore API Google: {err_msg}", "reply": f"⚠️ Errore API Google: {err_msg}"}
         else:
-            return {
-                "answer": "⚠️ Impossibile generare la risposta EBM.",
-                "reply": "⚠️ Impossibile generare la risposta EBM.",
-            }
+            return {"answer": "⚠️ Impossibile generare la risposta EBM.", "reply": "⚠️ Impossibile generare la risposta EBM."}
 
     except Exception as e:
-        return {
-            "answer": f"⚠️ Errore interno server: {str(e)}",
-            "reply": f"⚠️ Errore interno server: {str(e)}",
-        }
+        return {"answer": f"⚠️ Errore interno server: {str(e)}", "reply": f"⚠️ Errore interno server: {str(e)}"}
